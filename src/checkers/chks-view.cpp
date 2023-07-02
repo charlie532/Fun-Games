@@ -212,15 +212,13 @@ ChksView::ChksView() {
     gtk_style_context_add_class(context, CHKS_CLASS_GRID);
     gtk_grid_set_column_homogeneous(GTK_GRID(this->grid), TRUE);
     gtk_grid_set_row_homogeneous(GTK_GRID(this->grid), TRUE);
-    GtkGrid *grid;
-    GtkWidget *button;
 
-    grid = GTK_GRID(this->grid);
+    GtkGrid *grid = GTK_GRID(this->grid);
 
     for (gint i = 0; i < CHKS_SIZE; ++i) {
         for (gint j = 0; j < CHKS_SIZE; ++j) {
             field[i][j] = new ChksField(i, j);
-            button = field[i][j]->get_button();
+            GtkWidget *button = field[i][j]->get_button();
             field[i][j]->set_view(this);
             gtk_grid_attach(grid, button, i, j, 1, 1);
             g_signal_connect(button, "clicked", G_CALLBACK(chks_field_clicked), field[i][j]);

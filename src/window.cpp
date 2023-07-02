@@ -1,4 +1,5 @@
 #include "window.h"
+#include <iostream>
 
 GBoxGame GBoxWindow::get_active_game() {
     GtkStack *stack_prev = GTK_STACK(this->stack_prev);
@@ -34,7 +35,7 @@ static void start_game_button_clicked(GtkWidget *button, GBoxWindow *win) {
     gint size_x, size_y;
 
     GtkWidget *visible_child = win->get_stack_game();
-    GtkWindow *window = GTK_WINDOW(win->gbox_window_get());
+    GtkWindow *window = GTK_WINDOW(win->get_gbox_window());
     GtkStack *stack_main = GTK_STACK(win->get_stack_main());
     GtkStack *stack_game = GTK_STACK(win->get_stack_game());
     gboolean resizable = TRUE;
@@ -106,7 +107,7 @@ static void new_game_button_clicked(GtkWidget *button, GBoxWindow *win) {
 }
 
 static void back_button_clicked(GtkWidget *button, GBoxWindow *win) {
-    GtkWindow *window = GTK_WINDOW(win->gbox_window_get());
+    GtkWindow *window = GTK_WINDOW(win->get_gbox_window());
     GtkHeaderBar *hbar = GTK_HEADER_BAR(win->get_hbar());
     GtkStack *stack_main = GTK_STACK(win->get_stack_main());
     gboolean resizable = gtk_window_get_resizable(window);
@@ -121,7 +122,7 @@ static void back_button_clicked(GtkWidget *button, GBoxWindow *win) {
 
     gtk_window_set_default_size(window, GBOX_SIZE_WIN_X, GBOX_SIZE_WIN_Y);
     gtk_window_resize(window, GBOX_SIZE_WIN_X, GBOX_SIZE_WIN_Y);
-    gtk_stack_set_visible_child(stack_main, win->get_grid());
+    gtk_stack_set_visible_child(stack_main, win->get_grid_main());
 
     /* Change header bar title */
     gtk_header_bar_set_title(hbar, GBOX_TITLE_MAIN);
@@ -236,19 +237,72 @@ GtkWidget *GBoxWindow::get_hbar() {
     return this->hbar;
 }
 
-GtkWidget *GBoxWindow::get_grid() {
-    return this->grid;
+GtkWidget *GBoxWindow::get_grid_main() {
+    return this->grid_main;
 }
 
-GtkWidget *GBoxWindow::gbox_window_get() {
+GtkWidget *GBoxWindow::get_gbox_window() {
 	return this->self;
+}
+
+void GBoxWindow::set_main_window() {
+    /* Window */
+    gtk_container_add(GTK_CONTAINER(this->self), this->stack_main);
+
+    /* Header bar */
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(this->hbar), this->btn_back);
+    gtk_header_bar_pack_end(GTK_HEADER_BAR(this->hbar), this->btn_new);
+
+    /* Main grid */
+    gtk_grid_attach(GTK_GRID(this->grid_main), this->sidebar,    0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(this->grid_main), this->stack_prev, 1, 0, 1, 1);
+
+    /* Sidebar */
+    gtk_stack_sidebar_set_stack(GTK_STACK_SIDEBAR(this->sidebar), GTK_STACK(this->stack_prev));
+    gtk_widget_set_size_request(this->sidebar, 180, -1);
+    gtk_widget_set_vexpand(this->sidebar, TRUE);
+
+    /* Main stack */
+    gtk_stack_add_titled(GTK_STACK(this->stack_main), this->grid_main, "Prev", "Prev");
+    gtk_stack_add_titled(GTK_STACK(this->stack_main), this->stack_game, "Game", "Game");
+
+    /* Preview stack */
+    gtk_stack_set_transition_type(GTK_STACK(this->stack_prev), GTK_STACK_TRANSITION_TYPE_SLIDE_UP_DOWN);
+    gtk_stack_set_transition_duration(GTK_STACK(this->stack_prev), 500);
+    gtk_widget_set_vexpand(this->stack_prev, TRUE);
+    gtk_widget_set_hexpand(this->stack_prev, TRUE);
+
+    /* Back button */
+    g_signal_connect(this->btn_back, "clicked", G_CALLBACK(back_button_clicked), this);
+    gtk_widget_set_sensitive(this->btn_back, FALSE);
+    gtk_button_set_image(GTK_BUTTON(this->btn_back),
+                         gtk_image_new_from_icon_name(
+                         "go-previous-symbolic",
+                         GTK_ICON_SIZE_BUTTON));
+
+    /* New game button */
+    g_signal_connect(this->btn_new, "clicked", G_CALLBACK(new_game_button_clicked), this);
+    gtk_widget_set_sensitive(this->btn_new, FALSE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(this->btn_new), "suggested-action");
+}
+
+void GBoxWindow::del_start_window() {
+    gtk_widget_destroy(this->box_start);
+}
+
+static void on_start_button_clicked(GtkButton* button, GBoxWindow *win) {
+    win->del_start_window();
+    win->set_main_window();
+    gtk_widget_show_all(win->get_gbox_window());
 }
 
 GBoxWindow::GBoxWindow() {
     this->self       = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     this->hbar       = gtk_header_bar_new();
-    this->grid       = gtk_grid_new();
+    this->grid_main  = gtk_grid_new();
+    this->box_start  = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     this->sidebar    = gtk_stack_sidebar_new();
+
     this->stack_main = gtk_stack_new();
     this->stack_prev = gtk_stack_new();
     this->stack_game = gtk_stack_new();
@@ -272,46 +326,30 @@ GBoxWindow::GBoxWindow() {
     gtk_window_set_titlebar(GTK_WINDOW(this->self), this->hbar);
     gtk_window_set_position(GTK_WINDOW(this->self), GTK_WIN_POS_CENTER);
     this->gbox_window_add_interface();
-    gtk_container_add(GTK_CONTAINER(this->self), this->stack_main);
+    gtk_container_add(GTK_CONTAINER(this->self), this->box_start);
     g_signal_connect(this->self, "delete-event", gtk_main_quit, this);
 
     /* Header bar */
     gtk_header_bar_set_title(GTK_HEADER_BAR(this->hbar), GBOX_TITLE_MAIN);
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(this->hbar), TRUE);
-    gtk_header_bar_pack_start(GTK_HEADER_BAR(this->hbar), this->btn_back);
-    gtk_header_bar_pack_end(GTK_HEADER_BAR(this->hbar), this->btn_new);
 
-    /* Grid */
-    gtk_grid_attach(GTK_GRID(this->grid), this->sidebar,    0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(this->grid), this->stack_prev, 1, 0, 1, 1);
+    /* Start grid */
+    GtkWidget *title_label = gtk_label_new("Yee's FunGames");
+    gtk_style_context_add_class(gtk_widget_get_style_context(title_label), GBOX_TITLE_START);
 
-    /* Sidebar */
-    gtk_stack_sidebar_set_stack(GTK_STACK_SIDEBAR(this->sidebar), GTK_STACK(this->stack_prev));
-    gtk_widget_set_size_request(this->sidebar, 180, -1);
-    gtk_widget_set_vexpand(this->sidebar, TRUE);
+    GtkWidget *menu_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
+    GtkWidget *help_button = gtk_button_new_with_label("Help");
+    GtkWidget *start_button = gtk_button_new_with_label("Start");
+    GtkWidget *setting_button = gtk_button_new_with_label("Setting");
 
-    /* Main stack */
-    gtk_stack_add_titled(GTK_STACK(this->stack_main), this->grid, "Prev", "Prev");
-    gtk_stack_add_titled(GTK_STACK(this->stack_main), this->stack_game, "Game", "Game");
+    gtk_box_pack_start(GTK_BOX(menu_box), help_button, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(menu_box), start_button, TRUE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(menu_box), setting_button, TRUE, FALSE, 0);
 
-    /* Preview stack */
-    gtk_stack_set_transition_type(GTK_STACK(this->stack_prev), GTK_STACK_TRANSITION_TYPE_SLIDE_UP_DOWN);
-    gtk_stack_set_transition_duration(GTK_STACK(this->stack_prev), 500);
-    gtk_widget_set_vexpand(this->stack_prev, TRUE);
-    gtk_widget_set_hexpand(this->stack_prev, TRUE);
+    g_signal_connect(G_OBJECT(start_button), "clicked", G_CALLBACK(on_start_button_clicked), this);
 
-    /* Back button */
-    g_signal_connect(this->btn_back, "clicked", G_CALLBACK(back_button_clicked), this);
-    gtk_widget_set_sensitive(this->btn_back, FALSE);
-    gtk_button_set_image(GTK_BUTTON(this->btn_back),
-                         gtk_image_new_from_icon_name(
-                         "go-previous-symbolic",
-                         GTK_ICON_SIZE_BUTTON));
-
-    /* New game button */
-    g_signal_connect(this->btn_new, "clicked", G_CALLBACK(new_game_button_clicked), this);
-    gtk_widget_set_sensitive(this->btn_new, FALSE);
-    gtk_style_context_add_class(gtk_widget_get_style_context(this->btn_new), "suggested-action");
+    gtk_box_pack_start(GTK_BOX(this->box_start), title_label, TRUE, FALSE, 10);
+    gtk_box_pack_start(GTK_BOX(this->box_start), menu_box, TRUE, FALSE, 10);
 
     load_style_context();
 }

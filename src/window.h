@@ -32,6 +32,8 @@
 #define GBOX_TITLE_PREV_CHKS "Checkers"
 #define GBOX_TITLE_GAME_CHKS "chks"
 
+#define GBOX_TITLE_START "title-label"
+
 #define GBOX_TITLE_MAIN "GameBox"
 
 #define GBOX_CLASS_WINDOW "gbox-window"
@@ -51,7 +53,8 @@ private:
 	/* Container */
 	GtkWidget *self;
 	GtkWidget *hbar;
-	GtkWidget *grid;
+	GtkWidget *box_start;
+	GtkWidget *grid_main;
 	GtkWidget *sidebar;
 	GtkWidget *stack_main;
 	GtkWidget *stack_prev;
@@ -90,8 +93,10 @@ public:
 	GtkWidget *get_btn_back();
 	GtkWidget *get_btn_new();
 	GtkWidget *get_hbar();
-	GtkWidget *get_grid();
-    GtkWidget *gbox_window_get();
+	GtkWidget *get_grid_main();
+    GtkWidget *get_gbox_window();
+	void set_main_window();
+	void del_start_window();
 	GBoxWindow();
 };
 

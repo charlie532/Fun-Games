@@ -6,15 +6,13 @@
 #include "window.h"
 #include <gtk/gtk.h>
 
-using namespace std;
-
 gint main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
 
     GBoxWindow win;
-    GtkWidget *wid_gtk = win.gbox_window_get();
+    GtkWidget *start_window = win.get_gbox_window();
 
-    gtk_widget_show_all(wid_gtk);
+    gtk_widget_show_all(start_window);
 
     gtk_main();
 }
